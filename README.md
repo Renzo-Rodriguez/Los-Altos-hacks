@@ -7,6 +7,7 @@ To run this project, cd into the directory
 first enter the  virtual environment:
 
   windows:
+  
     ./backend/back/bin/activate
     
   linux:
@@ -18,6 +19,7 @@ first enter the  virtual environment:
    windows:
    
      pip install django, pymongo
+   
    linux:
    
      pip3 install django,pymongo
@@ -37,10 +39,10 @@ Also make sure that you have mongodb, in this project we are using mongodb atlas
  https://www.mongodb.com/blog/post/introducing-local-development-experience-atlas-search-vector-search-atlas-cli
 
  on linux run:
-
- sudo systemctl start mongod && sudo systemctl enable mongod
-
- to run the backend server cd into backend and run
+ 
+  sudo systemctl start mongod && sudo systemctl enable mongod
+  
+ to run the backend server cd into backend and run:
 
   py manage.py runserver (windows)
 
