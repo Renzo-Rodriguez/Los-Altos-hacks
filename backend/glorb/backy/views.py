@@ -25,5 +25,3 @@ def ai(message):
     # need to add a way for the ai to make a db call aswell
  
     response = openai.Completion.create(engine=model, prompt=message, maxtokens=100)
-
-
