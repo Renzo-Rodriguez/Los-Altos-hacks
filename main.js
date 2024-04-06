@@ -17,15 +17,13 @@ let mainWindow
 
 app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
-      width: 1920,
-      height: 1080,
       transparent: true,
       frame: false,
       alwaysOnTop: true,
     });
   mainWindow.loadFile(`index.html`);
-  mainWindow.setIgnoreMouseEvents(true);
-  mainWindow.setFocusable(false);
+  // mainWindow.setIgnoreMouseEvents(true);
+  // mainWindow.setFocusable(false);
 })
 
 app.on('window-all-closed', () => {

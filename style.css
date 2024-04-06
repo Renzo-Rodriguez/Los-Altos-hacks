@@ -3,4 +3,10 @@
 	margin: 0;
 	padding: 0;
 	background: transparent;
+	-webkit-user-select: none;
+	-webkit-app-region: drag;
+}
+
+button {
+	-webkit-app-region: no-drag;
 }
