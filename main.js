@@ -19,6 +19,8 @@ app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
       transparent: true,
       frame: false,
+      width: 200,
+      height: 200,
       alwaysOnTop: true,
     });
   mainWindow.loadFile(`index.html`);
