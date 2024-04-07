@@ -3,8 +3,9 @@ from . import views
 
 urlpatterns = [
     path('/request', views.wants, name='members'),
-    path('/ai', veiws.ai)
-    path('',veiws.home)
-    path('/login', veiws.log)
+    path('/ai', views.ai)
+    path('',views.home)
+    path('/login', views.log)
+    path('/upload', views.upload)
 ]
 
