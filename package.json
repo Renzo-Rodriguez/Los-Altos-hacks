@@ -23,7 +23,6 @@
   "dependencies": {
     "python-shell": "^5.0.0",
     "aws-sdk": "^2.1594.0",
-    "openai": "^4.33.0"
     "openai": "^4.33.0",
     "python-shell": "^5.0.0"
   }

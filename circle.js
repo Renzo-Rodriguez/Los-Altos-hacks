@@ -2,40 +2,41 @@ const OpenAI = require('openai');
 
 const openai = new OpenAI({ apiKey: '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', dangerouslyAllowBrowser: true });
 
-const fs = window.require('fs');
-
 let audioElement = new Audio();
 
-async function tts() {
+const { desktopCapturer } = require('electron');
+
+async function tts(text) {
     const response = await openai.audio.speech.create({
-      model: 'tts-1',
-      voice: 'alloy',
-      input: 'こんにちは！ 你好！',
+        model: 'tts-1',
+        voice: 'alloy',
+        // input: 'こんにちは！ 你好！',
+        input: text
     });
-  
+
     // Assuming the response has a property that gives you access to the MP3 data as an ArrayBuffer
     const buffer = Buffer.from(await response.arrayBuffer());
-  
+
     // Convert the Node.js buffer into an ArrayBuffer for the Blob constructor
     const arrayBuffer = new Uint8Array(buffer).buffer;
-  
+
     // Create a blob from the ArrayBuffer
     const blob = new Blob([arrayBuffer], { type: 'audio/mp3' });
-  
+
     // Create an object URL for the blob
     const audioUrl = URL.createObjectURL(blob);
-  
+
     // Create an audio element and set its source to the object URL
     audioElement = new Audio(audioUrl);
-  
+
     // Play the audio
     audioElement.play();
-  
+
     // Optional: Revoke the object URL after playing to release resources
-    audioElement.onended = function() {
-      URL.revokeObjectURL(audioUrl);
+    audioElement.onended = function () {
+        URL.revokeObjectURL(audioUrl);
     };
-  }
+}
 
 let noise = new SimplexNoise();
 const area = document.getElementById("visualiser");
@@ -60,7 +61,7 @@ function startRecording(stream) {
     };
     audioRecorder.onstop = () => {
         // Combine the audio chunks into a single Blob
-        let audioBlob = new Blob(audioData, { 'type' : 'audio/wav; codecs=opus' });
+        let audioBlob = new Blob(audioData, { 'type': 'audio/wav; codecs=opus' });
         // Do something with the Blob (e.g., create an audio URL for playback)
         // let audioUrl = URL.createObjectURL(audioBlob);
         // console.log('Recording stopped, audio available at:', audioUrl);
@@ -72,20 +73,27 @@ function startRecording(stream) {
     console.log('Recording started');
 }
 
-const { Readable } = require('stream');
-
-
 async function asr(audioBlob) {
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const readableStream = Readable.from(arrayBuffer);
-    console.log(readableStream);
+    const url = new URL('https://api.openai.com/v1/audio/transcriptions');
 
-    // const transcription = await openai.audio.transcriptions.create({
-    //   file: stream,
-    //   model: "whisper-1",
-    // });
-  
-    // console.log(transcription.text);
+    const form = new FormData();
+
+    form.append('file', audioBlob, "audio.mp3");
+    form.append('model', 'whisper-1');
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer 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`,
+        },
+        body: form,
+    });
+
+    const data = await response.json();
+    if (response.status === 200) {
+        console.log(data);
+        createChatCompletion(data.text);
+    }
 }
 
 let light;
@@ -117,26 +125,39 @@ area.addEventListener('click', () => {
             isRecording = false;
         }
     }
-    console.log(audio)
-    if (audio.paused) {
-        audio.play()
-        label.style.display = "none"
-    } else {
-        audio.pause()
-        label.style.display = "flex"
-    }
+    // console.log(audio)
+    // if (audio.paused) {
+    //     audio.play()
+    //     label.style.display = "none"
+    // } else {
+    //     audio.pause()
+    //     label.style.display = "flex"
+    // }
 
     // tts();
 })
 
-async function ocr(audioUrl) {
-    const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(audioUrl),
-      model: "whisper-1",
+var messages = [
+    { role: 'system', content: 'You are a helpful assistant. The user will speak conversationally with text that is the result of an audio to text transcriber, so keep in mind mistakes.' },
+    // { role: 'user', content: 'Who won the world series in 2020?' },
+];
+
+const createChatCompletion = async (message) => {
+    messages.push({ role: 'user', content: message });
+    console.log(messages);
+
+    const completion = await openai.chat.completions.create({
+        messages: messages,
+        model: "gpt-3.5-turbo",
     });
-  
-    console.log(transcription);
-}
+
+    console.log(completion.choices[0]);
+
+    const reply = completion.choices[0].message.content;
+    messages.push({"role": "assistant", "content": reply});
+
+    tts(reply); // Display the generated response
+};
 
 startVis()
 
@@ -212,7 +233,7 @@ function startVis() {
     function WarpSphere(mesh, bassFr, treFr) {
         mesh.geometry.vertices.forEach(function (vertex, i) {
             var offset = mesh.geometry.parameters.radius;
-            var amp = 5;
+            var amp = 15;
             var time = window.performance.now();
             vertex.normalize();
             var rf = 0.00001;
