@@ -10,5 +10,14 @@
   },
   "devDependencies": {
     "electron": "^29.2.0"
-  }
+  },
+  "extraResources": [
+    {
+      "from": "./python_scripts/",
+      "to": "python_scripts/",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ]
 }
