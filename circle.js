@@ -1,25 +1,122 @@
-const audioInput = document.getElementById("audio");
+const OpenAI = require('openai');
+
+const openai = new OpenAI({ apiKey: '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', dangerouslyAllowBrowser: true });
+
+const fs = window.require('fs');
+
+let audioElement = new Audio();
+
+async function tts() {
+    const response = await openai.audio.speech.create({
+      model: 'tts-1',
+      voice: 'alloy',
+      input: 'こんにちは！ 你好！',
+    });
+  
+    // Assuming the response has a property that gives you access to the MP3 data as an ArrayBuffer
+    const buffer = Buffer.from(await response.arrayBuffer());
+  
+    // Convert the Node.js buffer into an ArrayBuffer for the Blob constructor
+    const arrayBuffer = new Uint8Array(buffer).buffer;
+  
+    // Create a blob from the ArrayBuffer
+    const blob = new Blob([arrayBuffer], { type: 'audio/mp3' });
+  
+    // Create an object URL for the blob
+    const audioUrl = URL.createObjectURL(blob);
+  
+    // Create an audio element and set its source to the object URL
+    audioElement = new Audio(audioUrl);
+  
+    // Play the audio
+    audioElement.play();
+  
+    // Optional: Revoke the object URL after playing to release resources
+    audioElement.onended = function() {
+      URL.revokeObjectURL(audioUrl);
+    };
+  }
+
 let noise = new SimplexNoise();
 const area = document.getElementById("visualiser");
-const label = document.getElementById("label");
-// audioInput.addEventListener("change", setAudio, false);
-let audio = new Audio("Still.mp3");
-function setAudio() {
-    audio.pause()
-    const audioFile = this.files[0];
-    if (audioFile.name.includes(".mp3")) {
-        const audioURL = URL.createObjectURL(audioFile);
-        audio = new Audio(audioURL);
-        clearScene();
-        startVis()
 
-    } else {
-        alert("Invalid File Type!")
-    }
+let audioRecorder;
+let audioData = []; // This array will store the recorded audio chunks
+let isRecording = false; // A flag to check recording status
 
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    console.log('MediaDevices API and getUserMedia supported.');
+} else {
+    console.log('MediaDevices API or getUserMedia not supported in this browser.');
 }
 
+// Function to start recording
+function startRecording(stream) {
+    audioRecorder = new MediaRecorder(stream);
+    audioRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            audioData.push(event.data);
+        }
+    };
+    audioRecorder.onstop = () => {
+        // Combine the audio chunks into a single Blob
+        let audioBlob = new Blob(audioData, { 'type' : 'audio/wav; codecs=opus' });
+        // Do something with the Blob (e.g., create an audio URL for playback)
+        // let audioUrl = URL.createObjectURL(audioBlob);
+        // console.log('Recording stopped, audio available at:', audioUrl);
+        asr(audioBlob);
+        // Reset the audio data array for the next recording
+        audioData = [];
+    };
+    audioRecorder.start();
+    console.log('Recording started');
+}
+
+const { Readable } = require('stream');
+
+
+async function asr(audioBlob) {
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const readableStream = Readable.from(arrayBuffer);
+    console.log(readableStream);
+
+    // const transcription = await openai.audio.transcriptions.create({
+    //   file: stream,
+    //   model: "whisper-1",
+    // });
+  
+    // console.log(transcription.text);
+}
+
+let light;
+
 area.addEventListener('click', () => {
+    // Get the element you want to check
+    const element = document.getElementById('visualiser');
+
+    // Get the computed style of the element
+    const computedStyle = window.getComputedStyle(element);
+
+    // Check the value of -webkit-app-region property
+    const appRegionValue = computedStyle.getPropertyValue('-webkit-app-region');
+
+    if (appRegionValue !== 'drag' && !isRecording) {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(startRecording)
+            .catch((err) => {
+                console.error('Could not start recording:', err);
+            });
+        light.color.setHex(0xccccff);
+        console.log(light.color);
+        isRecording = true;
+    } else {
+        if (audioRecorder) {
+            audioRecorder.stop();
+            console.log('Recording stopped by user');
+            light.color.setHex(0x6666ff);
+            isRecording = false;
+        }
+    }
     console.log(audio)
     if (audio.paused) {
         audio.play()
@@ -29,7 +126,17 @@ area.addEventListener('click', () => {
         label.style.display = "flex"
     }
 
+    // tts();
 })
+
+async function ocr(audioUrl) {
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(audioUrl),
+      model: "whisper-1",
+    });
+  
+    console.log(transcription);
+}
 
 startVis()
 
@@ -40,7 +147,8 @@ function clearScene() {
 
 function startVis() {
     const context = new AudioContext();
-    const src = context.createMediaElementSource(audio);
+    const src = context.createMediaElementSource(audioElement);
+    // const src = context.createMediaElementSource(audio);
     const analyser = context.createAnalyser();
     src.connect(analyser);
     analyser.connect(context.destination);
@@ -49,7 +157,7 @@ function startVis() {
     const dataArray = new Uint8Array(bufferLength);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.z = 60;
     scene.add(camera);
 
@@ -61,7 +169,7 @@ function startVis() {
     area.appendChild(renderer.domElement);
     const geometry = new THREE.IcosahedronGeometry(20, 3);
     const material = new THREE.MeshLambertMaterial({
-        color: "#ccccff",
+        color: "#00e6e6",
         wireframe: true
     });
     const sphere = new THREE.Mesh(geometry, material);
@@ -69,7 +177,7 @@ function startVis() {
     //   const axesHelper = new THREE.AxesHelper( 5 );
     //   scene.add( axesHelper );
 
-    const light = new THREE.DirectionalLight("#6666ff");
+    light = new THREE.DirectionalLight("#6666ff");
     light.position.set(0, 50, 100);
     scene.add(light)
     scene.add(sphere)
@@ -81,7 +189,6 @@ function startVis() {
     });
 
     function render() {
-
         analyser.getByteFrequencyData(dataArray);
 
         const lowerHalf = dataArray.slice(0, (dataArray.length / 2) - 1);
@@ -139,33 +246,3 @@ function avg(arr) {
 function max(arr) {
     return arr.reduce(function (a, b) { return Math.max(a, b); })
 }
-
-// code to change the draggable property
-// does not work currently
-
-// document.addEventListener('keydown', function(event) {
-//     // Check if the pressed key is the Control key
-//     if (event.key === "Control") {
-//         // Find the element with the id "visualizer"
-//         var visualizerElement = document.getElementById("visualizer");
-//         if (visualizerElement) {
-//             // Apply the CSS properties
-//             visualizerElement.style.webkitUserSelect = "none";
-//             visualizerElement.style.webkitAppRegion = "drag";
-//         }
-//     }
-// });
-
-// document.addEventListener('keyup', function(event) {
-//     // Check if the released key is the Control key
-//     if (event.key === "Control") {
-//         // Find the element with the id "visualizer"
-//         var visualizerElement = document.getElementById("visualizer");
-//         if (visualizerElement) {
-//             // Remove the CSS properties by setting them to an empty string
-//             visualizerElement.style.webkitUserSelect = "";
-//             visualizerElement.style.webkitAppRegion = "";
-//         }
-//     }
-// });
-
