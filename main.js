@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require('electron')
 const path = require('node:path')
+const { spawn } = require('child_process');
 
 let mainWindow
 
@@ -26,8 +27,10 @@ app.whenReady().then(() => {
   mainWindow.loadFile(`index.html`);
   // mainWindow.setIgnoreMouseEvents(true);
   // mainWindow.setFocusable(false);
-})
+  // Execute the Python script on startup
+  const pythonProcess = spawn('python', [path.join(__dirname, 'python_scripts/textExtractor.py')]);
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
-})
+});

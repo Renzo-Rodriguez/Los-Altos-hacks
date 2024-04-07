@@ -21,6 +21,7 @@
     }
   ],
   "dependencies": {
+    "openai": "^4.33.0",
     "python-shell": "^5.0.0"
   }
 }

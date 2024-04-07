@@ -3,6 +3,7 @@ from PIL import Image
 import time
 import base64
 import requests
+import json
 
 api_key = "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"
 
@@ -12,7 +13,7 @@ def screenshot_area_around_mouse(width, height):
     top = y - height // 2
     right = left + width
     bottom = top + height
-     screenshot = pyautogui.screenshot(region=(left, top, width, height))
+    screenshot = pyautogui.screenshot(region=(left, top, width, height))
 
     return screenshot
 
@@ -23,7 +24,7 @@ def encode_image(image_path):
 def main():
     area_width = 300
     area_height = 300
-     while True:
+    while True:
         screenshot = screenshot_area_around_mouse(area_width, area_height)
         screenshot_path = "screenshot.png"
         screenshot.save(screenshot_path)
@@ -59,7 +60,7 @@ def main():
 
         print(response.json())
 
-        time.sleep(5)
+        time.sleep(10)
 
 if __name__ == "__main__":
     main()
