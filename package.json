@@ -19,5 +19,8 @@
         "**/*"
       ]
     }
-  ]
+  ],
+  "dependencies": {
+    "python-shell": "^5.0.0"
+  }
 }
